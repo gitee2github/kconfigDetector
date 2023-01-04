@@ -1,5 +1,15 @@
-#!/usr/bin/python3
-
+#!/usr/bin/env python3
+# **********************************************************************
+# Copyright (c) 2022 Institute of Software, Chinese Academy of Sciences.
+# kconfigDepDetector is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#         http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, 
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY
+# OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# **********************************************************************/
 """此文件可用于实现针对指定Linux内核相关功能, 包括：
   1 预处理文件(所有Kconfig文件整理到一个文件内)
   2 Kconfig解析, 生成配置项数据的json文件, 全部以string形式存储
@@ -16,7 +26,7 @@
     * 未找到配置项: lack config, 未在内核Kconfig文件中找到指定配置项
     * range未满足: range error, 
     * 取值未满足: restrict warning, 配置项取值未满足要求, 通常为default或imply关键字
-    * 依赖风险: unmet dependence, 配置项通过select强制启动, 但是依赖未满足
+    * 依赖风险: unmet dependences, 配置项通过select强制启动, 但是依赖未满足
 
 已经测试过的操作系统有
   * Linux原生内核代码
@@ -35,7 +45,12 @@ import os
 import platform
 import sys
 
-import tools
+# import kconfigDepDetector.tools
+from tools import check_folder
+from tools import check_file_data
+from tools import preprocessing
+from tools import parse
+from tools import check
 
 
 def print_result(save_file):
@@ -91,9 +106,9 @@ def print_result(save_file):
                                
                 if pk == 'type error':
                     print('\ttype = ' + print_dict[pk][i]['type'])
-                if pk == 'unmet dependence' and len(sel_str) > 0:
+                if pk == 'unmet dependences' and len(sel_str) > 0:
                     print('\trev_select = ' + sel_str)
-                if (pk == 'depends error' or pk == 'unmet dependence') and len(dep_str) > 0:
+                if (pk == 'depends error' or pk == 'unmet dependences') and len(dep_str) > 0:
                     print('\tdep = ' + dep_str)
                 if (pk == 'range error' or pk == 'restrict warning') and len(restrict_str) > 0:
                     print('\trestrict = ' + restrict_str)
@@ -118,9 +133,9 @@ def umain(linux, tag, arch, configPath, save_folder=''):
     # 检测保存文件夹是否存在
     home = os.getcwd()
     if len(save_folder) == 0:
-        folder = tools.check_folder(home + save_folder, tag, arch)
+        folder = check_folder(home + save_folder, tag, arch)
     else:
-        folder = tools.check_folder(save_folder, tag, arch)
+        folder = check_folder(save_folder, tag, arch)
     
     # 删除同一版本历史检查结果
     save_file = folder + tag + '_' + arch + '_error.json'
@@ -132,29 +147,29 @@ def umain(linux, tag, arch, configPath, save_folder=''):
     
     # 预处理阶段
     Kconfig = folder + tag + '_' + arch + '.Kconfig'
-    if tools.check_file_data(Kconfig):
+    if check_file_data(Kconfig):
         print("{:<40}".format("[Have preprocessing]") + "file => " + Kconfig)
     else:
-        tools.preprocessing(linux, arch, Kconfig, display)
+        preprocessing(linux, arch, Kconfig, display)
         print("{:<40}".format("[Preprocessing end]") + "file => " + Kconfig)
 
     # Kconfig解析器
     config = folder + tag + '_' + arch + '_config.json'
     config_dep = folder + tag + '_' + arch + '_dep.json'
-    if tools.check_file_data(config) and tools.check_file_data(config_dep):
+    if check_file_data(config) and check_file_data(config_dep):
         print("{:<40}".format("[Kconfig has been parsed!]") + "file => " + config)
         print("{:<40}".format("") + "file => " + config)
     else:
-        tools.parse(Kconfig, config, config_dep, display)
+        parse(Kconfig, config, config_dep, display)
 
     # 检查配置文件
-    tools.check(config_dep, config, configPath, save_file)
+    check(config_dep, config, configPath, save_file)
     
     # 终端打印输出结果
     print_result(save_file)
 
 
-if __name__ == '__main__':
+def main():
     argv = sys.argv[1:]
     try:
         opts, args = getopt.getopt(argv, "hc:v:s:o:a:", ["check=","version=","src=","arch"])
@@ -193,4 +208,8 @@ if __name__ == '__main__':
             save_folder = arg+'/'
     
     umain(linux, tag, arch, configPath, save_folder)
+
+
+if __name__ == '__main__':
+    main()
     

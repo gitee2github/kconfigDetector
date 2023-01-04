@@ -1,3 +1,14 @@
+# **********************************************************************
+# Copyright (c) 2022 Institute of Software, Chinese Academy of Sciences.
+# kconfigDepDetector is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#         http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, 
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY
+# OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# **********************************************************************/
 """ 给定检查逻辑，实现对指定配置文件的检查功能
 
 主函数为Checker(dep_path, config_path, file_path, save_file)
@@ -21,8 +32,8 @@
 import re
 import time
 
-import tools.check_lex as check_lex
-import tools.utils as utils
+from .check_lex import lexer
+from .utils import load_json, write_json_file
 
 CONFIG = None  # _config.json
 CONFIG_DEP = None  # _config_dep.json
@@ -48,10 +59,10 @@ def get_tokens(data):
     """ check_lex借助ply.lex实现的词法分析器
         对输入的data数据解析, 并返回list
     """
-    check_lex.lexer.input(data)
+    lexer.input(data)
     result = []
     while True:
-        tok = check_lex.lexer.token()
+        tok = lexer.token()
         if not tok:
             break
         result.append(tok)
@@ -598,8 +609,8 @@ def Checker(dep_path, config_path, file_path, save_file):
     global CONFIG, CONFIG_DEP, CONFIG_VALUE, HAVE_CHECK
     begin = time.time()
     load_config(file_path)
-    CONFIG_DEP = utils.load_json(dep_path)
-    CONFIG = utils.load_json(config_path)
+    CONFIG_DEP = load_json(dep_path)
+    CONFIG = load_json(config_path)
     check_MODULES()
     for name in CONFIG_VALUE:
         if CONFIG_VALUE[name] == 'n':
@@ -614,7 +625,7 @@ def Checker(dep_path, config_path, file_path, save_file):
     global ERROR_JSON
     if len(ERROR_JSON) > 0:
         print("{:<40}".format("[Prepare write check result]") + "file => " + save_file)
-        utils.write_json_file(ERROR_JSON, save_file)
+        write_json_file(ERROR_JSON, save_file)
     else:
         print("{:<40}".format("[Check end]") + "The configuration is right !")
 
