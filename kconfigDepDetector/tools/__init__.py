@@ -1,11 +1,26 @@
+# **********************************************************************
+# Copyright (c) 2022 Institute of Software, Chinese Academy of Sciences.
+# kconfigDepDetector is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#         http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, 
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY
+# OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# **********************************************************************/
 __all__ = ['preprocess.py', 'config_yacc.py', 'check.py']
 
 import os
 
-import tools.check as config_check
-import tools.config_yacc as config_yacc
-import tools.preprocess as preprocess
-import tools.utils as utils
+from .check import Checker
+from .config_yacc import ParseKconfig
+from .preprocess import preprocessing as inner_preprocessing
+from .utils import load_Kconfig as inner_load_Kconfig
+from .utils import load_json as inner_load_json
+from .utils import write_json_file as inner_write_json_file
+from .utils import get_word as inner_get_word
+from .utils import dict_add_item as inner_dict_add_item
 
 
 def preprocessing(root, target, file, display) -> None:
@@ -16,15 +31,15 @@ def preprocessing(root, target, file, display) -> None:
         file: 预处理后生成.Kconfig文件
         display: 终端打印开关
     """
-    preprocess.preprocessing(root, target, file, display)
+    inner_preprocessing(root, target, file, display)
 
 
 def load_Kconfig(path) -> str:
-    return utils.load_Kconfig(path)
+    return inner_load_Kconfig(path)
 
 
 def load_json(path):
-    return utils.load_json(path)
+    return inner_load_json(path)
 
 
 def check_file_data(path) -> bool:
@@ -64,7 +79,7 @@ def check_folder(root, tag, arch) -> str:
 
 
 def write_json(data, save_file) -> None:
-    utils.write_json_file(data, save_file)
+    inner_write_json_file(data, save_file)
 
 
 def parse(Kconfig, config, config_dep, display) -> None:
@@ -76,7 +91,7 @@ def parse(Kconfig, config, config_dep, display) -> None:
         display: 是否显示终端信息，可加快识别速度
     返回值: None
     """
-    config_yacc.ParseKconfig(Kconfig, config, config_dep, display)
+    ParseKconfig(Kconfig, config, config_dep, display)
 
 
 def check(dep_path, config_path, file_path, save_file) -> None:
@@ -87,7 +102,7 @@ def check(dep_path, config_path, file_path, save_file) -> None:
         file_path: 待检查内核配置文件
         save_file: 输出检查结果_error.json文件，包含所有错误项，若无错误则文件不存在
     """
-    config_check.Checker(dep_path, config_path, file_path, save_file)
+    Checker(dep_path, config_path, file_path, save_file)
 
 
 def make_dict(dep_data, flag) -> dict:
@@ -104,10 +119,10 @@ def make_dict(dep_data, flag) -> dict:
     getKid = {}
     for name in dep_data:
         for detail in dep_data[name]:
-            temp = utils.get_word(detail['rev_select']) + utils.get_word(detail['dep'])
+            temp = inner_get_word(detail['rev_select']) + inner_get_word(detail['dep'])
             for item in temp:
-                getFather = utils.dict_add_item(getFather, name, item)
-                getKid = utils.dict_add_item(getKid, item, name)
+                getFather = inner_dict_add_item(getFather, name, item)
+                getKid = inner_dict_add_item(getKid, item, name)
     if flag:
         return getKid
     else:

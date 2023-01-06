@@ -1,3 +1,14 @@
+# **********************************************************************
+# Copyright (c) 2022 Institute of Software, Chinese Academy of Sciences.
+# kconfigDepDetector is licensed under Mulan PSL v2.
+# You can use this software according to the terms and conditions of the Mulan PSL v2.
+# You may obtain a copy of Mulan PSL v2 at:
+#         http://license.coscl.org.cn/MulanPSL2
+# THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, 
+# EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY
+# OR FIT FOR A PARTICULAR PURPOSE.
+# See the Mulan PSL v2 for more details.
+# **********************************************************************/
 """此文件用于生成配置项的父类或子类配置项
 函数依赖于main.py生成的dep.json文件
 

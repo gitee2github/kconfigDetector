@@ -19,10 +19,13 @@ import ply.yacc as yacc
 import re
 import time
 
-import tools.config_class as config_class
-from tools.config_lex import *
+from .config_class import check_line_and
+from .config_class import Node as config_class_Node
+from .config_class import Group as config_class_Group
+from .config_lex import *
 # import tools.config_lex as config_lex
-import tools.utils as utils
+from .utils import load_Kconfig as utils_load_Kconfig
+from .utils import write_json_file as utils_write_json_file
 
 
 display_switch = True
@@ -47,7 +50,7 @@ def set_last_node_dep():
         for item in GROUP[1:]:
             if item.node.detail is not None:
                 if len(item.display) > 0:
-                    dis = config_class.check_line_and(dis) + '( ' + item.display + ' )'
+                    dis = check_line_and(dis) + '( ' + item.display + ' )'
         if len(dis) > 0:
             default = group_end.node.dep_temp.get_default() if group_end else None
             for item in default:
@@ -64,12 +67,12 @@ def set_last_node_dep():
         for item in GROUP[1:]:
             if item.node.detail is not None:
                 if len(item.display) > 0:
-                    dis = config_class.check_line_and(dis) + '( ' + item.display + ' )'
+                    dis = check_line_and(dis) + '( ' + item.display + ' )'
 
         if len(last_node.dep_temp.get_display()) > 0:
-            dis = config_class.check_line_and(dis) + last_node.dep_temp.get_display()
+            dis = check_line_and(dis) + last_node.dep_temp.get_display()
         else:
-            dis = config_class.check_line_and(dis) + 'y'
+            dis = check_line_and(dis) + 'y'
 
         default = last_node.dep_temp.get_default()
         if len(dis) > 0:
@@ -101,9 +104,9 @@ def set_groupDep_configDep(node):
         if item.node.detail is not None:
             if len(item.node.detail.get_depends()) > 0:
                 if item.node.detail.get_depends()[1] == '"' and item.node.detail.get_depends()[-1] == '"':
-                    dep = config_class.check_line_and(dep) + item.node.detail.get_depends()
+                    dep = check_line_and(dep) + item.node.detail.get_depends()
                 else:
-                    dep = config_class.check_line_and(dep) + '( ' + item.node.detail.get_depends() + ' )'
+                    dep = check_line_and(dep) + '( ' + item.node.detail.get_depends() + ' )'
 
     node.config_dep.set_depends(dep)
     return node
@@ -175,7 +178,7 @@ def handle_quote(target):
 ##########################      grammar     ##########################
 PATH_STACK = []
 
-root = config_class.Node("root", "root", 'root')
+root = config_class_Node("root", "root", 'root')
 last_node = root
 all_node = {}
 
@@ -184,8 +187,8 @@ GROUP = []
 
 def reset_data():
     global root, last_node, all_node, choice_index, choice_index_list, SELECT, IMPLY, PATH_STACK, GROUP
-    root = config_class.Node("root", "root", 'root')
-    GROUP = [config_class.Group(root)]
+    root = config_class_Node("root", "root", 'root')
+    GROUP = [config_class_Group(root)]
     last_node = root
     all_node = {}
     choice_index = 0
@@ -284,7 +287,7 @@ def p_config_stmt(p):
     """
     set_last_node_dep()
 
-    node = config_class.Node(p[2], p[1], PATH_STACK[-1])
+    node = config_class_Node(p[2], p[1], PATH_STACK[-1])
 
     node = set_groupDep_configDep(node)
 
@@ -314,7 +317,7 @@ def p_comment(p):
     set_last_node_dep()
 
     p[2] = handle_quote(p[2])
-    node = config_class.Node(p[2], p[1], PATH_STACK[-1])
+    node = config_class_Node(p[2], p[1], PATH_STACK[-1])
 
     set_last_node(node, p[1])
 
@@ -329,11 +332,11 @@ def p_menu(p):  # depends visible
     set_last_node_dep()
 
     p[2] = handle_quote(p[2])
-    node = config_class.Node(p[2], p[1], PATH_STACK[-1])
+    node = config_class_Node(p[2], p[1], PATH_STACK[-1])
 
     set_last_node(node, p[1])
 
-    GROUP.append(config_class.Group(node))
+    GROUP.append(config_class_Group(node))
 
     test_print("menu_stmt", p)
 
@@ -344,10 +347,10 @@ def p_if(p):
     """
     set_last_node_dep()
 
-    node = config_class.Node(p[2]['string'], p[1], PATH_STACK[-1])
+    node = config_class_Node(p[2]['string'], p[1], PATH_STACK[-1])
     set_last_node(node, p[1])
 
-    group = config_class.Group(node)
+    group = config_class_Group(node)
     group.set_group_dep(p[2]['dep'])
     GROUP.append(group)
 
@@ -366,7 +369,7 @@ def p_choice(p):  # type prompt depends
     set_last_node_dep()
 
     global choice_index, choice_index_list
-    node = config_class.Node('choice' + str(choice_index), p[1], PATH_STACK[-1])
+    node = config_class_Node('choice' + str(choice_index), p[1], PATH_STACK[-1])
     choice_index_list.append(choice_index)
     choice_index += 1
     if p[2] != '\n':
@@ -376,7 +379,7 @@ def p_choice(p):  # type prompt depends
 
     set_last_node(node, p[1])
 
-    GROUP.append(config_class.Group(node))
+    GROUP.append(config_class_Group(node))
 
     test_print("choice_stmt", p)
 
@@ -407,7 +410,7 @@ def p_groupend_stmt(p):
                 choice_config = '( ' + item.name
                 for tmp in child:
                     if tmp != item:
-                        choice_config = config_class.check_line_and(choice_config)
+                        choice_config = check_line_and(choice_config)
                         choice_config += ' !' + tmp.name
                 choice_config += ' )'
                 item.config_dep.set_depends(choice_config)
@@ -827,7 +830,7 @@ def handle_imply(target, lack_config):
                     if len(kid_dis) > 0:
                         kid_dis = '!( ' + kid_dis + ' )'
                     if len(restrict) > 0:
-                        kid_dis = config_class.check_line_and(kid_dis)
+                        kid_dis = check_line_and(kid_dis)
                         if_expr = kid_dis + restrict
                     ptr.config_dep.set_imply('( ' + father + ' )', if_expr)
         else:
@@ -842,7 +845,7 @@ def ParseKconfig(file, config_file, dep_file, display):
 
     reset_data()
     begin = time.time()
-    parser.parse(utils.load_Kconfig(file), lexer=lexer)
+    parser.parse(utils_load_Kconfig(file), lexer=lexer)
     
     cost = time.time() - begin
     print("\nParse time\t\t{}".format(str(cost)))
@@ -865,11 +868,11 @@ def ParseKconfig(file, config_file, dep_file, display):
 
     print("{:<40}".format("[Prepare write AllConfig]") + "file => " +
           config_file)
-    utils.write_json_file(all_config, config_file)
+    utils_write_json_file(all_config, config_file)
 
     print("{:<40}".format("[Prepare write AllConfigDep]") + "file => " +
           dep_file)
     lack_config = handle_select(SELECT, [])
     lack_config = handle_imply(IMPLY, lack_config)
-    utils.write_json_file(all_config_dep, dep_file)
+    utils_write_json_file(all_config_dep, dep_file)
 
